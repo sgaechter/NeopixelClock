@@ -87,7 +87,7 @@ bool        clock_sync_ok = false;
 int clock_hour, clock_minute, clock_second, clock_milli;
 
 // define the local timezone offset from GMT
-const time_t  TIMEZONEOFFSET = (2 * 60 * 60);     // Swizerland is GMT + 1 hours
+const time_t  TIMEZONEOFFSET = (2 * 60 * 60);     // Swizerland is GMT + 1 hours // Summertime = +2
 
 /*
   ---------------------------------------------------------------------
@@ -205,10 +205,10 @@ bool sychronizeTime(void)
 void setPixelColor(Adafruit_NeoPixel & strip, int index, byte red, byte green, byte blue, int brightness = 256)
 {
   strip.setPixelColor(index,
-                      (((int)red) * brightness) >> 8,
-                      (((int)green) * brightness) >> 8,
-                      (((int)blue) * brightness) >> 8
-                     );
+  (((int)red) * brightness) >> 8,
+  (((int)green) * brightness) >> 8,
+  (((int)blue) * brightness) >> 8
+  );
 }
 
 /**
@@ -271,23 +271,9 @@ void drawHourHand(int hour, int minute) {
 
   int hourClassification = NEO_NUM_PIXELS / 12;
   int hourminPix = minute / (60 / hourClassification);
-  int hourPlus = hour % 12;
   int hourPix = 0;
-  if (hourPlus == 0) {
-    hourPix = (hour * hourClassification) + hourminPix;
-  }
-  else {
-    hourPix = (hourPlus * hourClassification) + hourminPix;
-  }
-
-  if (hourPix == 12) {
-    // special case for noon
-    int special = 0 + hourminPix;
-    setPixelColor(strip, special, 255, 0, 0, BRIGHTNESS / 3);
-  }
-  else {
-    setPixelColor(strip, hourPix, 255, 0, 0, BRIGHTNESS / 3);
-  }
+  hourPix = ((hourPlus * hourClassification) % NEO_NUM_PIXELS) + hourminPix;
+  setPixelColor(strip, hourPix, 255, 0, 0, BRIGHTNESS / 3);
 }
 
 /**
