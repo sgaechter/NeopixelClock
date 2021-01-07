@@ -1,10 +1,8 @@
-
-
 /**
-   @file        Neopixel_binary_Clock.ino
-   @brief       Time display program for an ESP8266 and a single 60-Neopixel Ring and/or binaryClock
+   @file        NeopixelClock.ino
+   @brief       Time display program for an ESP8266 and a single 60-Neopixel Ring
 
-   @history     March 2, 2019
+   @history     January 4, 2019
 
    @author      Sven Gaechter <entwicklung@allround-service.biz>
 
@@ -24,7 +22,6 @@
         5)  current Sketch is published on Git Hub:
             https://github.com/sgaechter/NeopixelClock.git
 
-        6)  current sketch has been altered to display binary Ckock and Wheel
 */
 
 #include "Adafruit_NeoPixel.h"
@@ -34,38 +31,25 @@
 #include <ctype.h>
 #include <Time.h>
 
-
-
 /*---------------------------------------------------------------------
   /   Constants and Global Variables
   /----------------------------------------------------------------------*/
 // WIFI
 const char* WIFI_SSID = "YOUR_SSID";     // YOUR WiFi SSID here
-const char* WIFI_PWD = "YOUR_KEY";      // YOUR WiFi password here
+const char* WIFI_PWD = "YOUR_SECRET_KEY";      // YOUR WiFi password here
 
-// NeoPixel Settings for Wheel
+// NeoPixel Settings
 const int NEOPIXEL_DATA_PIN = D6;       // WeMos digital pin D6
-const int NEO_NUM_PIXELS = 60;     // one Ring, 60 pixels (addressed 0-59)
+const int NEO_NUM_PIXELS = 60;     // one Ring, 59 pixels
 const int BRIGHTNESS = 96;              // experiment with this
 
-// NeoPixel Settings for binary Clock
-const int BIN_NEOPIXEL_DATA_PIN = D5;       // WeMos digital pin D5
-const int BIN_NEO_NUM_PIXELS = 18;    					// WeMos LED Strips, 18 leds, devided in 3x 6 leds
-const int BIN_BRIGHTNESS = 96;              // experiment with this
+/*
+  int hourPix = 0;
+  int minutePix = 0;
+  int secPix = 0;
+*/
 
-// Address Arrays for Neopixels (usually you don't need to change anything here)
-byte arrayHour[] = {17, 16, 15, 14, 13}; //  //13, 14, 15, 16, 17
-byte arrayMin[] = {6, 7, 8, 9, 10, 11}; // // 11, 10, 9, 8, 7, 6
-byte arraySec[] = {5, 4, 3, 2, 1, 0}; //  0, 1, 2, 3, 4, 5
-
-
-// create an instance of NeoPixel called 'bin_strip' for Binary Clock
-Adafruit_NeoPixel bin_strip = Adafruit_NeoPixel(
-                                BIN_NEO_NUM_PIXELS,
-                                BIN_NEOPIXEL_DATA_PIN,
-                                NEO_GRB + NEO_KHZ800);
-
-// create an instance of NeoPixel called 'strip' for NeoPixel color Wheel to show conventionally Clock
+// create an instance of NeoPixel called 'strip'
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(
                             NEO_NUM_PIXELS,
                             NEOPIXEL_DATA_PIN,
@@ -75,7 +59,6 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(
 const uint16_t TCP = 13;
 const char *NistHostName = "time.nist.gov"; // our NTP server url
 IPAddress NistServerAddr(0, 0, 0, 0);       // set via DNA lookup, maybe to 129.6.15.28
-
 
 // global Time synchonization variables
 time_t      clocktime_s = 0;        // seconds on the clock (since midnight)
@@ -87,16 +70,12 @@ bool        clock_sync_ok = false;
 int clock_hour, clock_minute, clock_second, clock_milli;
 
 // define the local timezone offset from GMT
-const time_t  TIMEZONEOFFSET = (2 * 60 * 60);     // Swizerland is GMT + 1 hours
+const time_t  TIMEZONEOFFSET = (1 * 60 * 60);     // Swizerland is GMT + 1 hours, Summertime + 2 hours
 
 /*
   ---------------------------------------------------------------------
 */
 
-// Count Array length for binary Clock
-#define nBitsSec sizeof(arraySec)/sizeof(arraySec[0])
-#define nBitsMin sizeof(arrayMin)/sizeof(arrayMin[0])
-#define nBitsHr sizeof(arrayHour)/sizeof(arrayHour[0])
 
 /**
         getTime_from_NIST -- retrieve the current time from nist.time.gov, by
@@ -129,6 +108,7 @@ time_t  getTime_from_NIST(void)
   client.stop();   // Close connection
   return parse_NTP_response(line);
 }
+
 
 /**
         parseNTPresponse -- parse the packet from nist.time.gov,
@@ -173,6 +153,7 @@ time_t  parse_NTP_response(String line)
   return 0;
 }
 
+
 /**
         sychronizeTime -- called to open a connection to the time server
             and set global variables for the current time
@@ -199,6 +180,7 @@ bool sychronizeTime(void)
   return clock_sync_ok;
 }
 
+
 /**
         setPixelColor -- set a single pixel in the NeoPixel ring to a specific RGB value
 */
@@ -209,39 +191,6 @@ void setPixelColor(Adafruit_NeoPixel & strip, int index, byte red, byte green, b
                       (((int)green) * brightness) >> 8,
                       (((int)blue) * brightness) >> 8
                      );
-}
-
-/**
-      drawing the pixels for BinaryClock
-*/
-void dispBinaryHour(byte In) {
-  for (int i = 0; i <= nBitsHr; i++) { // count from most right Bit (0) to 4th Bit (3){
-    if (bitRead(In, i) == 1) {
-      setPixelColor(bin_strip, arrayHour[i], 35, 3, 196, BIN_BRIGHTNESS / 3);
-      //Serial.print("Hour array LED: ");
-      //Serial.println(arrayHour[i]);
-    }
-  }
-}
-
-void dispBinaryMin(byte In) {
-  for (int i = 0; i <= nBitsMin; i++) { // count from most right Bit (0) to 4th Bit (3){
-    if (bitRead(In, i) == 1) {
-      setPixelColor(bin_strip, arrayMin[i], 35, 3, 196, BIN_BRIGHTNESS / 3);
-      //Serial.print("Hour array LED: ");
-      //Serial.println(arrayMin[i]);
-    }
-  }
-}
-
-void dispBinarySec(byte In) {
-  for (int i = 0; i <= nBitsSec; i++) { // count from most right Bit (0) to 4th Bit (3){
-    if (bitRead(In, i) == 1) {
-      setPixelColor(bin_strip, arraySec[i], 35, 3, 196, BIN_BRIGHTNESS / 3);
-      //Serial.print("Hour array LED: ");
-      //Serial.println(arraySec[i]);
-    }
-  }
 }
 
 /*
@@ -273,27 +222,44 @@ void drawHourHand(int hour, int minute) {
   int hourminPix = minute / (60 / hourClassification);
   int hourPlus = hour % 12;
   int hourPix = 0;
-  hourPix = (hourPlus * hourClassification) + hourminPix;
-  setPixelColor(strip, hourPix, 255, 0, 0, BRIGHTNESS / 3);
+  if (hourPlus == 0) {
+    hourPix = (hour * hourClassification) + hourminPix;
+  }
+  else {
+    hourPix = (hourPlus * hourClassification) + hourminPix;
+  }
+
+  if (hourPix == 12) {
+    // special case for noon
+    int special = 0 + hourminPix;
+    setPixelColor(strip, special, 255, 0, 0, BRIGHTNESS / 3);
+  }
+  else {
+    setPixelColor(strip, hourPix, 255, 0, 0, BRIGHTNESS / 3);
+  }
 }
 
 /**
-        draw Hands of the Neopixel Ring- Clock
+        drawMinuteHand -- update the  NeoPixel ring, with the pixel representing the minutes
 */
-//update the  NeoPixel ring, with the pixel representing the minutes
 void drawMinuteHand(int minute) {
+
   int minutePix = minute / (60 / NEO_NUM_PIXELS);     //count of Pixels / 60minutes * count Hour
   setPixelColor(strip, minutePix, 0, 255, 0, BRIGHTNESS);
 }
 
-//update the NeoPixel ring, with the pixel representing the seconds
+/**
+        drawSecondHand -- update the NeoPixel ring, with the pixel representing the seconds
+*/
 void drawSecondHand(int sec) {
   int secPixClass = 60 / NEO_NUM_PIXELS;
   int secPix = sec / secPixClass;
   setPixelColor(strip, secPix, 255, 195, 0, BRIGHTNESS / 2);
 }
 
-//update both NeoPixel rings, with the current time
+/**
+        refreshClock -- update both NeoPixel rings, with the current time
+*/
 void refreshClock(int hour, int minute, int second) {
   strip.clear();
   drawGlobClassification();
@@ -301,11 +267,6 @@ void refreshClock(int hour, int minute, int second) {
   drawMinuteHand(minute);
   drawSecondHand(second);
   strip.show();
-  bin_strip.clear();
-  dispBinarySec(second);
-  dispBinaryMin(minute);
-  dispBinaryHour(hour);
-  bin_strip.show();
 }
 
 /**
@@ -318,10 +279,6 @@ void setup() {
   strip.begin();
   strip.clear();
   strip.show(); // Initialize all pixels to 'off'
-
-  bin_strip.begin();
-  bin_strip.clear();
-  bin_strip.show(); // Initialize all pixels to 'off'
 
   Serial.begin(115200);
   Serial.println();
@@ -350,6 +307,7 @@ void setup() {
   }
 }
 
+
 /**
         timeKeeping -- called once per loop to manage to time variables
 */
@@ -374,6 +332,7 @@ void timeKeeping() {
     sychronizeTime();
   }
 }
+
 
 /**
         loop -- time display program for a ESP8266 and a pair of NeoPixel rings
